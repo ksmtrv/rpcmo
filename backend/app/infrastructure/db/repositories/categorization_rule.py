@@ -16,3 +16,45 @@ class CategorizationRuleRepository:
             .order_by(CategorizationRule.priority.desc())
         )
         return list(result.scalars().all())
+
+    async def list_by_user(self, user_id: str) -> list[CategorizationRule]:
+        result = await self.session.execute(
+            select(CategorizationRule)
+            .where(CategorizationRule.user_id == user_id)
+            .order_by(CategorizationRule.priority.desc())
+        )
+        return list(result.scalars().all())
+
+    async def get_by_id(self, user_id: str, rule_id: str) -> CategorizationRule | None:
+        result = await self.session.execute(
+            select(CategorizationRule).where(
+                CategorizationRule.id == rule_id,
+                CategorizationRule.user_id == user_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def create(
+        self,
+        user_id: str,
+        name: str,
+        priority: int,
+        conditions_json: dict,
+        category_id: str,
+        is_active: bool = True,
+    ) -> CategorizationRule:
+        r = CategorizationRule(
+            user_id=user_id,
+            name=name,
+            priority=priority,
+            conditions_json=conditions_json,
+            category_id=category_id,
+            is_active=is_active,
+        )
+        self.session.add(r)
+        await self.session.flush()
+        return r
+
+    async def delete(self, rule: CategorizationRule) -> None:
+        self.session.delete(rule)
+        await self.session.flush()

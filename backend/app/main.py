@@ -5,9 +5,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routers import backups, categories, forecast, imports, mapping_templates, recurring, receivables, reports, rules, transactions
-from app.core.db import get_db, init_db
+from app.core.db import init_db
 from app.core.errors import AppError
+from app.core.config import settings
 from app.core.logging import setup_logging
+
+
+def _cors_params() -> tuple[list[str], bool]:
+    raw = (settings.cors_origins or "").strip()
+    if raw == "*":
+        return ["*"], False
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    if not parts:
+        return ["*"], False
+    cred = settings.cors_allow_credentials
+    if "*" in parts:
+        return ["*"], False
+    return parts, cred
 
 
 @asynccontextmanager
@@ -35,10 +49,11 @@ async def app_error_handler(request, exc: AppError):
         content={"error": {"code": exc.code, "message": exc.message, "details": exc.details}},
     )
 
+_origins, _cred = _cors_params()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_origins,
+    allow_credentials=_cred,
     allow_methods=["*"],
     allow_headers=["*"],
 )

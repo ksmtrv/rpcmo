@@ -17,3 +17,9 @@ class AccountRepository:
     async def get_by_user(self, user_id: str) -> list[Account]:
         result = await self.session.execute(select(Account).where(Account.user_id == user_id))
         return list(result.scalars().all())
+
+    async def get_by_id_for_user(self, user_id: str, account_id: str) -> Account | None:
+        result = await self.session.execute(
+            select(Account).where(Account.id == account_id, Account.user_id == user_id)
+        )
+        return result.scalar_one_or_none()

@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db.models import Transaction
@@ -52,10 +52,43 @@ class TransactionRepository:
         result = await self.session.execute(q)
         return list(result.scalars().all()), total
 
-    async def update_category(self, transaction_id: str, category_id: str | None) -> Transaction | None:
-        result = await self.session.execute(select(Transaction).where(Transaction.id == transaction_id))
-        txn = result.scalar_one_or_none()
+    async def get_by_id(self, user_id: str, transaction_id: str) -> Transaction | None:
+        result = await self.session.execute(
+            select(Transaction).where(
+                Transaction.id == transaction_id,
+                Transaction.user_id == user_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def update_category(
+        self, user_id: str, transaction_id: str, category_id: str | None
+    ) -> Transaction | None:
+        txn = await self.get_by_id(user_id, transaction_id)
         if txn:
             txn.category_id = category_id
             await self.session.flush()
         return txn
+
+    async def count_uncategorized_matching_pattern(
+        self,
+        user_id: str,
+        normalized_description: str,
+        counterparty: str | None,
+    ) -> int:
+        parts = []
+        if normalized_description:
+            parts.append(Transaction.normalized_description == normalized_description)
+        if counterparty:
+            parts.append(Transaction.counterparty == counterparty)
+        if not parts:
+            return 0
+        q = (
+            select(func.count())
+            .select_from(Transaction)
+            .where(Transaction.user_id == user_id)
+            .where(Transaction.category_id.is_(None))
+            .where(or_(*parts))
+        )
+        result = await self.session.execute(q)
+        return int(result.scalar() or 0)

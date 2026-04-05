@@ -14,6 +14,13 @@ class RecurringCreate(BaseModel):
     next_run_date: date
 
 
+class RecurringUpdate(BaseModel):
+    is_confirmed: bool | None = None
+    is_active: bool | None = None
+    next_run_date: date | None = None
+    name: str | None = None
+
+
 class RecurringRead(BaseModel):
     id: str
     name: str

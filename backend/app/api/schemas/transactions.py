@@ -27,3 +27,13 @@ class TransactionUpdate(BaseModel):
 class BulkCategorizeRequest(BaseModel):
     transaction_ids: list[str]
     category_id: str | None
+
+
+class TransactionManualCreate(BaseModel):
+    account_id: str
+    operation_date: date
+    amount: Decimal
+    direction: str
+    description: str = ""
+    counterparty: str | None = None
+    category_id: str | None = None

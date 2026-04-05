@@ -6,9 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.errors import ValidationError
+from app.domain.services.text_normalize import normalize_description
 from app.domain.services.transaction_hash import compute_transaction_hash
 from app.infrastructure.csv.parser import detect_delimiter, detect_encoding, map_row_to_transaction_data, parse_csv_rows
 from app.application.services.auto_categorization import get_category_color, suggest_category
+from app.application.services.rule_category_resolver import resolve_category_from_rules
 from app.infrastructure.db.repositories import (
     AccountRepository,
     CategoryRepository,
@@ -17,10 +19,6 @@ from app.infrastructure.db.repositories import (
     TransactionRepository,
     UserRepository,
 )
-
-
-def normalize_description(text: str) -> str:
-    return " ".join(text.split()).lower() if text else ""
 
 
 def parse_amount(amount_str: str, direction: str) -> Decimal:
@@ -178,15 +176,17 @@ class ImportService:
             amount = parse_amount(str(amount_str), direction)
             norm_desc = normalize_description(desc)
 
-            # Авто-категоризация по назначению и контрагенту
-            category_id = None
-            cat_name = suggest_category(desc, counterparty, direction)
-            if cat_name:
-                cat_type = "expense" if direction == "out" else "income"
-                cat = await self.category_repo.get_or_create(
-                    user.id, cat_name, cat_type, get_category_color(cat_name)
-                )
-                category_id = cat.id
+            category_id = await resolve_category_from_rules(
+                self.session, user.id, desc, counterparty or None, direction
+            )
+            if not category_id:
+                cat_name = suggest_category(desc, counterparty, direction)
+                if cat_name:
+                    cat_type = "expense" if direction == "out" else "income"
+                    cat = await self.category_repo.get_or_create(
+                        user.id, cat_name, cat_type, get_category_color(cat_name)
+                    )
+                    category_id = cat.id
 
             ext_hash = compute_transaction_hash(op_date, amount, norm_desc, counterparty or None, account.id)
             existing = await self.txn_repo.get_by_hash(user.id, ext_hash)

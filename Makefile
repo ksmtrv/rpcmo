@@ -13,7 +13,7 @@ db-migrate:
 	cd backend && uv run alembic upgrade head
 
 backend:
-	cd backend && uv run uvicorn app.main:app --reload
+	cd backend && uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 
 frontend:
 	cd frontend && yarn dev

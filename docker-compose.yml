@@ -37,6 +37,7 @@ services:
       redis:
         condition: service_started
     volumes:
+      - ./backend/app:/app/app
       - ./backend/uploads:/app/uploads
       - ./backend/backups:/app/backups
 

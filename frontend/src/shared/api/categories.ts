@@ -14,4 +14,5 @@ export const categoriesApi = {
     api.post<Category>("/categories", data),
   update: (id: string, data: { name?: string; color?: string }) =>
     api.patch<Category>(`/categories/${id}`, data),
+  delete: (id: string) => api.delete<void>(`/categories/${id}`),
 }

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.auto_categorization import get_category_color, suggest_category
+from app.application.services.rule_category_resolver import resolve_category_from_rules
 from app.infrastructure.db.models import Transaction
 from app.infrastructure.db.repositories import CategoryRepository, TransactionRepository
 
@@ -27,6 +28,18 @@ class CategorizationService:
         updated = 0
 
         for t in txns:
+            rid = await resolve_category_from_rules(
+                self.session,
+                user_id,
+                t.description or "",
+                t.counterparty,
+                t.direction,
+            )
+            if rid:
+                t.category_id = rid
+                updated += 1
+                continue
+
             cat_name = suggest_category(
                 t.description or "",
                 t.counterparty or "",

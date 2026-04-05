@@ -18,6 +18,15 @@ class RecurringRepository:
         )
         return list(result.scalars().all())
 
+    async def get_by_id_for_user(self, user_id: str, recurring_id: str) -> RecurringTransaction | None:
+        result = await self.session.execute(
+            select(RecurringTransaction).where(
+                RecurringTransaction.user_id == user_id,
+                RecurringTransaction.id == recurring_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_upcoming(self, user_id: str, end_date: date) -> list[RecurringTransaction]:
         result = await self.session.execute(
             select(RecurringTransaction)

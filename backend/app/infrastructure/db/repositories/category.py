@@ -18,6 +18,12 @@ class CategoryRepository:
         await self.session.flush()
         return cat
 
+    async def get_by_id_for_user(self, user_id: str, category_id: str) -> Category | None:
+        result = await self.session.execute(
+            select(Category).where(Category.id == category_id, Category.user_id == user_id)
+        )
+        return result.scalar_one_or_none()
+
     async def get_or_create(
         self, user_id: str, name: str, type: str, color: str | None = None
     ) -> Category:

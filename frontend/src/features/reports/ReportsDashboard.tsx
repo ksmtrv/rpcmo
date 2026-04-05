@@ -4,11 +4,13 @@ import { Button } from "@/shared/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card"
 import { formatMoney } from "@/shared/lib/format"
 import { reportsApi } from "@/shared/api/reports"
-import { categoriesApi } from "@/shared/api/categories"
 import { transactionsApi } from "@/shared/api/transactions"
+import { loadCategoriesForOffline } from "@/shared/offline/dataLoad"
+import { useOnlineStatus } from "@/shared/offline/hooks"
 
 export function ReportsDashboard() {
   const queryClient = useQueryClient()
+  const online = useOnlineStatus()
   const { data: cashflow } = useQuery({
     queryKey: ["reports", "cashflow"],
     queryFn: () => reportsApi.cashflow(),
@@ -26,7 +28,7 @@ export function ReportsDashboard() {
 
   const { data: catList } = useQuery({
     queryKey: ["categories"],
-    queryFn: categoriesApi.list,
+    queryFn: loadCategoriesForOffline,
   })
 
   const autoCategorizeMutation = useMutation({
@@ -94,7 +96,8 @@ export function ReportsDashboard() {
               variant="outline"
               size="sm"
               onClick={() => autoCategorizeMutation.mutate()}
-              disabled={autoCategorizeMutation.isPending}
+              disabled={autoCategorizeMutation.isPending || !online}
+              title={!online ? "Нужна сеть" : undefined}
             >
               {autoCategorizeMutation.isPending ? "..." : "Авто-категоризация"}
             </Button>
